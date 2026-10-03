@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JELAS - Jurnal Harian Guru</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        gold: { 50: '#fbf9f1', 100: '#f5f0d9', 200: '#ebe1b5', 300: '#deca85', 400: '#d1af54', 500: '#c59535', 600: '#ac7528', 700: '#895522', 800: '#724522', 900: '#613a21', 950: '#381f10' },
+                        cream: '#FDFBF7',
+                        dark: '#121212',
+                        darker: '#0a0a0a',
+                        darkcard: '#1e1e1e'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- SheetJS (Excel Export) -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <!-- jsPDF & AutoTable (PDF Export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        /* Custom Styles & Scrollbar */
+        body { -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #4b5563; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        
+        /* Gold Gradient Text */
+        .text-gradient-gold {
+            background: linear-gradient(135deg, #c59535 0%, #d1af54 50%, #ac7528 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass {
+            background: rgba(30, 30, 30, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .animate-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 22s linear infinite;
+        }
+        .animate-marquee:hover {
+            animation-play-state: paused;
+        }
+    </style>
+</head>
+<body class="bg-cream text-slate-800 dark:bg-darker dark:text-slate-200 transition-colors duration-300">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, createContext, useContext, useRef, useCallback } = React;
+
+        
+        // --- INITIAL MOCK DATA ---
+        const initialData = {
+            appSettings: {
+                appTitle: "JELAS",
+                appSubtitle: "JURNAL GURU FASE D",
+                schoolName: "MTs Negeri 2 Kabupaten Gorontalo",
+                logo: ""
+            },
+            kopSettings: {
+                line1: "KEMENTERIAN AGAMA REPUBLIK INDONESIA",
+                line2: "KANTOR KEMENTERIAN AGAMA KABUPATEN GORONTALO",
+                line3: "MADRASAH TSANAWIYAH NEGERI 2 KABUPATEN GORONTALO",
+                address: "Jl. Ahmad A. Wahab No. 123, Limboto, Kab. Gorontalo",
+                contact: "Email: mtsn2gorontalo@kemenag.go.id | Telp: (0435) 881234",
+                fontFamily: "helvetica",
+                fontSizeLine1: 11,
+                fontSizeLine2: 12,
+                fontSizeLine3: 14,
+                fontSizeAddress: 8.5,
+                logoLeft: "",
+                logoRight: "",
+                showLogoLeft: true,
+                showLogoRight: true,
+                showLogo: true
+            },
+            teacher: {
+                name: "Sandi Kurnianto Koniyo, S.Pd",
+                nip: "19850101 201001 1 001", // Fake NIP for visual
+                school: "MTs Negeri 2 Kabupaten Gorontalo",
+                phase: "D",
+                academicYear: "2026/2027",
+                photo: "https://placehold.co/150x150/c59535/ffffff?text=SK",
+                headmasterName: "Drs. H. Abd. Rahman, M.Pd",
+                headmasterNip: "19710515 199703 1 002"
+            },
+            classes: [
+                { id: 'c1', name: 'VII-A', studentCount: 32 },
+                { id: 'c2', name: 'VII-B', studentCount: 30 },
+                { id: 'c3', name: 'VII-C', studentCount: 31 },
+                { id: 'c4', name: 'VII-D', studentCount: 32 },
+                { id: 'c5', name: 'VII-E', studentCount: 29 },
+                { id: 'c6', name: 'VII-F', studentCount: 30 },
+                { id: 'c7', name: 'VII-G', studentCount: 31 },
+            ],
+            subjects: ["Bahasa Indonesia", "Matematika", "IPA", "IPS", "Bahasa Inggris", "Pendidikan Agama Islam", "PJOK"],
+            materials: [
+                { id: 'm1', subject: 'Bahasa Indonesia', chapter: 'Teks Deskripsi', title: 'Menelaah Struktur Teks Deskripsi' },
+                { id: 'm2', subject: 'Bahasa Indonesia', chapter: 'Teks Narasi', title: 'Unsur Intrinsik Cerita Fantasi' },
+            ],
+            students: [],
+            journals: [],
+            attendance: []
+        };
+
+        // Generate fake students
+        const generateStudents = () => {
+            let students = [];
+            let idCounter = 1;
+            initialData.classes.forEach(cls => {
+                for(let i=0; i<5; i++) { // Generate 5 per class for demo
+                    students.push({
+                        id: `s${idCounter++}`,
+                        nis: `2026${String(idCounter).padStart(3, '0')}`,
+                        name: `Siswa Contoh ${idCounter} (${cls.name})`,
+                        gender: i % 2 === 0 ? 'L' : 'P',
+                        classId: cls.id,
+                        className: cls.name
+                    });
+                }
+            });
+            return students;
+        };
+        initialData.students = generateStudents();
+
+        // --- DATABASE SERVICE (LocalStorage Wrapper) ---
+        const DB = {
+            init: () => {
+                if (!localStorage.getItem('jelas_data')) {
+                    localStorage.setItem('jelas_data', JSON.stringify(initialData));
+                }
+            },
+            get: () => JSON.parse(localStorage.getItem('jelas_data')),
+            set: (data) => localStorage.setItem('jelas_data', JSON.stringify(data)),
+            saveJournal: (journal) => {
+                const data = DB.get();
+                if(journal.id) {
+                    const idx = data.journals.findIndex(j => j.id === journal.id);
+                    if(idx !== -1) data.journals[idx] = journal;
+                } else {
+                    journal.id = 'j_' + Date.now();
+                    data.journals.unshift(journal); // Add to top
+                }
+                DB.set(data);
+                return journal;
+            },
+            deleteJournal: (id) => {
+                const data = DB.get();
+                data.journals = data.journals.filter(j => j.id !== id);
+                DB.set(data);
+            },
+            saveAttendance: (date, classId, records) => {
+                const data = DB.get();
+                // Remove existing for this date and class
+                data.attendance = data.attendance.filter(a => !(a.date === date && a.classId === classId));
+                data.attendance.push({ id: 'a_'+Date.now(), date, classId, records });
+                DB.set(data);
+            },
+            saveAppSettings: (settings) => {
+                const data = DB.get();
+                data.appSettings = settings;
+                DB.set(data);
+            },
+            saveKopSettings: (kop) => {
+                const data = DB.get();
+                data.kopSettings = kop;
+                DB.set(data);
+            },
+            saveTeacher: (teacherData) => {
+                const data = DB.get();
+                data.teacher = teacherData;
+                DB.set(data);
+            },
+            saveClass: (cls) => {
+                const data = DB.get();
+                if(cls.id) {
+                    const idx = data.classes.findIndex(c => c.id === cls.id);
+                    if(idx !== -1) data.classes[idx] = cls;
+                } else {
+                    cls.id = 'c_' + Date.now();
+                    data.classes.push(cls);
+                }
+                DB.set(data);
+            },
+            deleteClass: (id) => {
+                const data = DB.get();
+                data.classes = data.classes.filter(c => c.id !== id);
+                DB.set(data);
+            },
+            importStudents: (newStudents) => {
+                const data = DB.get();
+                data.students = [...data.students, ...newStudents];
+                DB.set(data);
+            }
+        };
+        DB.init();
+
+
+        // --- UTILS ---
+        const formatDate = (dateStr) => {
+            if(!dateStr) return '';
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateStr).toLocaleDateString('id-ID', options);
+        };
+
+        const getTodayStr = () => {
+            const today = new Date();
+            // Format YYYY-MM-DD for inputs
+            return today.toISOString().split('T')[0];
+        };
+
+        // --- CONTEXT ---
+        const AppContext = createContext();
+
+        const AppProvider = ({ children }) => {
+            const [data, setData] = useState(() => {
+                const dbData = DB.get();
+                // Backward compatibility untuk data lama
+                if (!dbData.appSettings) {
+                    dbData.appSettings = {
+                        appTitle: "JELAS",
+                        appSubtitle: "JURNAL GURU FASE D",
+                        schoolName: "MTs Negeri 2 Kabupaten Gorontalo",
+                        logo: ""
+                    };
+                }
+                if (!dbData.kopSettings) {
+                    dbData.kopSettings = {
+                        line1: "KEMENTERIAN AGAMA REPUBLIK INDONESIA",
+                        line2: "KANTOR KEMENTERIAN AGAMA KABUPATEN GORONTALO",
+                        line3: "MADRASAH TSANAWIYAH NEGERI 2 KABUPATEN GORONTALO",
+                        address: "Jl. Ahmad A. Wahab No. 123, Limboto, Kab. Gorontalo",
+                        contact: "Email: mtsn2gorontalo@kemenag.go.id | Telp: (0435) 881234",
+                        logoLeft: "",
+                        logoRight: "",
+                        showLogoLeft: true,
+                        showLogoRight: true,
+                        showLogo: true
+                    };
+                }
+                if (dbData.kopSettings.showLogoLeft === undefined) {
+                    dbData.kopSettings.showLogoLeft = true;
+                    dbData.kopSettings.showLogoRight = true;
+                    dbData.kopSettings.logoLeft = dbData.kopSettings.logoLeft || dbData.appSettings?.logo || "";
+                    dbData.kopSettings.logoRight = dbData.kopSettings.logoRight || "";
+                }
+                if (dbData.kopSettings.fontFamily === undefined) {
+                    dbData.kopSettings.fontFamily = "helvetica";
+                    dbData.kopSettings.fontSizeLine1 = 11;
+                    dbData.kopSettings.fontSizeLine2 = 12;
+                    dbData.kopSettings.fontSizeLine3 = 14;
+                    dbData.kopSettings.fontSizeAddress = 8.5;
+                }
+                if (!dbData.teacher.headmasterName) {
+                    dbData.teacher.headmasterName = "Drs. H. Abd. Rahman, M.Pd";
+                    dbData.teacher.headmasterNip = "19710515 199703 1 002";
+                }
+                DB.set(dbData);
+                return dbData;
+            });
+            const [user, setUser] = useState(null); // null if not logged in
+            const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+            const [currentView, setCurrentView] = useState('dashboard');
+            const [toast, setToast] = useState(null);
+
+            useEffect(() => {
+                document.documentElement.className = theme;
+                localStorage.setItem('theme', theme);
+            }, [theme]);
+
+            const refreshData = () => setData(DB.get());
+
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            };
+
+            const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
+            return (
+                <AppContext.Provider value={{ 
+                    data, refreshData, 
+                    user, setUser, 
+                    theme, toggleTheme,
+                    currentView, setCurrentView,
+                    showToast
+                }}>
+                    {children}
+                    {toast && (
+                        <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white font-medium z-50 animate-fade-in flex items-center gap-2 ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+                            <i className={`ph-fill ${toast.type === 'success' ? 'ph-check-circle' : 'ph-warning-circle'} text-xl`}></i>
+                            {toast.message}
+                        </div>
+                    )}
+                </AppContext.Provider>
+            );
+        };
+
+
+        // --- UI COMPONENTS ---
+        const Card = ({ children, className = "" }) => (
+            <div className={`bg-white dark:bg-darkcard rounded-xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 ${className}`}>
+                {children}
+            </div>
+        );
+
+        const Button = ({ children, variant = 'primary', icon, onClick, className = "", type="button" }) => {
+            const baseStyle = "inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-darker";
+            const variants = {
+                primary: "bg-gold-500 hover:bg-gold-600 text-white shadow-md shadow-gold-500/20 focus:ring-gold-500",
+                secondary: "bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 focus:ring-slate-500",
+                danger: "bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-400 focus:ring-red-500",
+                ghost: "hover:bg-slate-100 text-slate-600 dark:hover:bg-slate-800 dark:text-slate-300"
+            };
+            return (
+                <button type={type} onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`}>
+                    {icon && <i className={`ph ${icon} text-lg`}></i>}
+                    {children}
+                </button>
+            );
+        };
+
+        const Input = ({ label, type = "text", ...props }) => (
+            <div className="mb-4">
+                {label && <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>}
+                <input 
+                    type={type} 
+                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-darkcard text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-colors outline-none"
+                    {...props}
+                />
+            </div>
+        );
+
+        const Select = ({ label, options, ...props }) => (
+            <div className="mb-4">
+                {label && <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>}
+                <select 
+                    className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-darkcard text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500 focus:border-transparent transition-colors outline-none"
+                    {...props}
+                >
+                    <option value="">-- Pilih --</option>
+                    {options.map((opt, i) => (
+                        <option key={i} value={opt.value || opt}>{opt.label || opt}</option>
+                    ))}
+                </select>
+            </div>
+        );
+
+        const Badge = ({ status }) => {
+            const styles = {
+                'Terlaksana': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                'Sebagian Terlaksana': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                'Tidak Terlaksana': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+            };
+            const style = styles[status] || 'bg-slate-100 text-slate-700';
+            return <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${style}`}>{status}</span>;
+        };
+
+
+        // --- LAYOUT COMPONENTS ---
+        const Sidebar = ({ isOpen, setIsOpen }) => {
+            const { currentView, setCurrentView, user, setUser, data } = useContext(AppContext);
+
+            const menus = [
+                { title: 'DASHBOARD', items: [{ id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' }] },
+                { title: 'JURNAL HARIAN', items: [
+                    { id: 'jurnal_list', label: 'Semua Jurnal', icon: 'ph-book-open-text' },
+                    { id: 'jurnal_form', label: 'Tambah Jurnal', icon: 'ph-plus-circle' },
+                ]},
+                { title: 'AKADEMIK & KEHADIRAN', items: [
+                    { id: 'presensi', label: 'Presensi Siswa', icon: 'ph-calendar-check' },
+                    { id: 'kelas', label: 'Data Kelas', icon: 'ph-blackboard' },
+                    { id: 'siswa', label: 'Data Siswa', icon: 'ph-users' },
+                ]},
+                { title: 'PENGATURAN', items: [
+                    { id: 'settings', label: 'Pengaturan & Export', icon: 'ph-gear' },
+                ]}
+            ];
+
+            const navItemClass = (id) => `flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors mb-1 ${currentView === id ? 'bg-gold-500 text-white shadow-md shadow-gold-500/20' : 'text-slate-600 hover:bg-gold-50 dark:text-slate-400 dark:hover:bg-slate-800 hover:text-gold-600 dark:hover:text-gold-400'}`;
+
+            return (
+                <>
+                    {/* Mobile overlay */}
+                    {isOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsOpen(false)}></div>}
+                    
+                    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-darkcard border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 overflow-y-auto ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                        <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-darkcard z-10">
+                            <div className="flex items-center gap-3">
+                                {data.appSettings?.logo ? (
+                                    <img src={data.appSettings.logo} alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-gold-500/30 bg-white" />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-gold-500/30">
+                                        {data.appSettings?.appTitle?.charAt(0) || 'J'}
+                                    </div>
+                                )}
+                                <div>
+                                    <h1 className="font-display font-bold text-xl tracking-tight text-slate-800 dark:text-white">{data.appSettings?.appTitle || 'JELAS'}</h1>
+                                    <p className="text-[10px] text-slate-500 font-medium tracking-wide">{data.appSettings?.appSubtitle || 'JURNAL GURU FASE D'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4">
+                            {menus.map((section, idx) => (
+                                <div key={idx} className="mb-6">
+                                    <p className="px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 mb-2 tracking-wider">{section.title}</p>
+                                    {section.items.map(item => (
+                                        <div 
+                                            key={item.id} 
+                                            className={navItemClass(item.id)}
+                                            onClick={() => { setCurrentView(item.id); setIsOpen(false); }}
+                                        >
+                                            <i className={`ph ${item.icon} text-xl ${currentView === item.id ? '' : 'text-slate-400 dark:text-slate-500'}`}></i>
+                                            <span className="font-medium text-sm">{item.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="p-4 border-t border-slate-100 dark:border-slate-800">
+                            <div 
+                                className="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                onClick={() => setUser(null)}
+                            >
+                                <i className="ph ph-sign-out text-xl"></i>
+                                <span className="font-medium text-sm">Logout</span>
+                            </div>
+                        </div>
+                    </aside>
+                </>
+            );
+        };
+
+        const Header = ({ toggleSidebar }) => {
+            const { data, theme, toggleTheme } = useContext(AppContext);
+            const today = formatDate(new Date().toISOString());
+
+            return (
+                <header className="sticky top-0 z-30 bg-white/80 dark:bg-darkcard/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 h-16 flex items-center justify-between px-4 lg:px-8">
+                    <div className="flex items-center gap-3 md:gap-4">
+                        <button onClick={toggleSidebar} className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 active:scale-95 transition-transform" aria-label="Menu">
+                            <i className="ph ph-list text-2xl"></i>
+                        </button>
+                        <div className="flex items-center gap-2 text-xs md:text-sm text-slate-600 dark:text-slate-300 font-medium">
+                            <i className="ph ph-calendar-blank text-gold-500 text-base"></i>
+                            <span className="truncate">{today}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 md:gap-4">
+                        <button onClick={toggleTheme} className="p-2 rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors" title="Beralih Tema">
+                            <i className={`ph ${theme === 'dark' ? 'ph-sun text-yellow-400' : 'ph-moon'} text-xl`}></i>
+                        </button>
+                        
+                        <div className="flex items-center gap-2 md:gap-3 pl-3 md:pl-4 border-l border-slate-200 dark:border-slate-700">
+                            <div className="hidden sm:block text-right">
+                                <p className="text-xs md:text-sm font-semibold text-slate-800 dark:text-white leading-tight">{data.teacher.name.split(',')[0]}</p>
+                                <p className="text-[11px] text-slate-500">Guru {data.teacher.phase}</p>
+                            </div>
+                            <img src={data.teacher.photo} alt="Profile" className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover border-2 border-gold-400 shadow-sm" />
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+
+        // --- VIEWS ---
+        const ViewLogin = () => {
+            const { setUser, data } = useContext(AppContext);
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                // Simulate login
+                setUser({ role: 'guru', name: 'Sandi Kurnianto Koniyo, S.Pd' });
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-gold-50 relative overflow-hidden">
+                    {/* Decorative elements */}
+                    <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-gold-300 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+                    <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+                    
+                    <Card className="w-full max-w-md relative z-10 glass !border-t-4 !border-t-gold-500 shadow-2xl">
+                        <div className="text-center mb-8">
+                            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-gold-400 to-gold-600 rounded-2xl flex items-center justify-center shadow-lg mb-4 transform rotate-12 overflow-hidden">
+                                {data.appSettings?.logo ? (
+                                    <img src={data.appSettings.logo} alt="Logo" className="w-full h-full object-cover transform -rotate-12 scale-125 bg-white" />
+                                ) : (
+                                    <i className="ph ph-book-open text-3xl text-white transform -rotate-12"></i>
+                                )}
+                            </div>
+                            <h1 className="text-2xl font-display font-bold text-slate-800">{data.appSettings?.appTitle || 'JURNAL HARIAN GURU'}</h1>
+                            <p className="text-sm text-slate-500 mt-1">{data.appSettings?.schoolName || 'MTs Negeri 2 Kabupaten Gorontalo'}</p>
+                            <div className="inline-block px-3 py-1 bg-gold-100 text-gold-700 rounded-full text-xs font-semibold mt-3">
+                                {data.appSettings?.appSubtitle || 'Fase D – Kelas VII'}
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleLogin}>
+                            <Input label="Username" placeholder="Masukkan NIP / Username" value={username} onChange={e => setUsername(e.target.value)} required />
+                            <Input label="Password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+                            
+                            <div className="flex items-center justify-between mb-6">
+                                <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                                    <input type="checkbox" className="rounded text-gold-500 focus:ring-gold-500" />
+                                    Ingat saya
+                                </label>
+                                <a href="#" className="text-sm text-gold-600 hover:text-gold-700 font-medium">Lupa Password?</a>
+                            </div>
+
+                            <Button type="submit" className="w-full py-2.5 text-base shadow-lg shadow-gold-500/30">LOGIN SEKARANG</Button>
+                        </form>
+                        
+                        <div className="mt-8 pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
+                            <p>Tahun Pelajaran: 2026/2027</p>
+                            <p className="mt-1 font-medium">© JELAS - Jurnal Elektronik Administrasi Sekolah</p>
+                        </div>
+                    </Card>
+                </div>
+            );
+        };
+
+        const ViewDashboard = () => {
+            const { data, user } = useContext(AppContext);
+            const chartRef = useRef(null);
+            
+            const stats = [
+                { label: 'Total Jurnal', value: data.journals.length, icon: 'ph-books', color: 'bg-blue-500' },
+                { label: 'Kelas Aktif', value: data.classes.length, icon: 'ph-chalkboard-teacher', color: 'bg-emerald-500' },
+                { label: 'Total Siswa', value: data.students.length, icon: 'ph-users-three', color: 'bg-purple-500' },
+                { label: 'Materi Tersedia', value: data.materials.length, icon: 'ph-folder-open', color: 'bg-gold-500' },
+            ];
+
+            // Initialize chart
+            useEffect(() => {
+                if(chartRef.current) {
+                    const ctx = chartRef.current.getContext('2d');
+                    if(window.myChart) window.myChart.destroy();
+                    
+                    window.myChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                            datasets: [{
+                                label: 'Jurnal Terisi',
+                                data: [2, 3, 2, 4, 1, 0],
+                                backgroundColor: '#c59535',
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                        }
+                    });
+                }
+                return () => { if(window.myChart) window.myChart.destroy(); }
+            }, []);
+
+            return (
+                <div className="animate-fade-in space-y-5 md:space-y-6">
+                    {/* Running Text Banner */}
+                    <div className="bg-gradient-to-r from-gold-500/10 via-amber-500/10 to-gold-500/10 dark:from-gold-500/20 dark:to-gold-500/20 border border-gold-500/30 rounded-xl p-2.5 sm:p-3 shadow-sm flex items-center gap-3 overflow-hidden">
+                        <div className="bg-gold-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1.5 flex-shrink-0 shadow-sm">
+                            <i className="ph-fill ph-broadcast text-sm animate-pulse"></i>
+                            <span>INFO</span>
+                        </div>
+                        <div className="overflow-hidden relative w-full flex items-center">
+                            <div className="animate-marquee whitespace-nowrap text-xs md:text-sm font-medium text-slate-700 dark:text-slate-200">
+                                <span className="inline-flex items-center gap-1.5 mr-10">
+                                    <i className="ph ph-user-circle text-gold-600 dark:text-gold-400 font-bold text-base"></i>
+                                    <span className="font-semibold text-slate-900 dark:text-white">Guru:</span> {data.teacher.name} (NIP. {data.teacher.nip})
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 mr-10">
+                                    <i className="ph ph-buildings text-gold-600 dark:text-gold-400 font-bold text-base"></i>
+                                    <span className="font-semibold text-slate-900 dark:text-white">Madrasah:</span> {data.appSettings?.schoolName || data.teacher.school}
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 mr-10">
+                                    <i className="ph ph-calendar text-gold-600 dark:text-gold-400 font-bold text-base"></i>
+                                    <span className="font-semibold text-slate-900 dark:text-white">Tahun Pelajaran:</span> {data.teacher.academicYear}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Welcome Banner */}
+                    <div className="bg-gradient-to-r from-gold-600 to-gold-400 rounded-2xl p-5 md:p-8 text-white shadow-xl shadow-gold-500/20 relative overflow-hidden">
+                        <div className="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 pointer-events-none">
+                            <i className="ph-fill ph-book-open text-[150px] md:text-[200px]"></i>
+                        </div>
+                        <div className="relative z-10 max-w-2xl">
+                            <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold mb-2">Assalamu'alaikum, {user.name} 👋</h2>
+                            <p className="text-gold-50 text-xs sm:text-sm md:text-base mb-4 md:mb-6 opacity-90">Selamat datang di Dashboard Jurnal Harian Guru Fase D. Semoga hari mengajar Anda menyenangkan!</p>
+                            <div className="italic border-l-4 border-gold-300 pl-3 md:pl-4 py-1 text-xs sm:text-sm bg-black/10 rounded-r-lg inline-block">
+                                "Mendidik bukan hanya mengajar, tetapi membimbing setiap langkah menuju masa depan."
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {stats.map((stat, idx) => (
+                            <Card key={idx} className="flex items-center gap-4 hover:-translate-y-1 transition-transform cursor-default">
+                                <div className={`w-12 h-12 rounded-full ${stat.color} text-white flex items-center justify-center flex-shrink-0 shadow-lg`}>
+                                    <i className={`ph ${stat.icon} text-2xl`}></i>
+                                </div>
+                                <div>
+                                    <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">{stat.label}</p>
+                                    <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stat.value}</p>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <Card className="md:col-span-2">
+                            <h3 className="font-semibold text-lg mb-4">Aktivitas Jurnal Minggu Ini</h3>
+                            <div className="h-64">
+                                <canvas ref={chartRef}></canvas>
+                            </div>
+                        </Card>
+                        
+                        <Card>
+                            <h3 className="font-semibold text-lg mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Jurnal Terbaru</h3>
+                            <div className="space-y-4 mt-4">
+                                {data.journals.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400 text-sm">Belum ada jurnal dibuat.</div>
+                                ) : (
+                                    data.journals.slice(0, 4).map(j => (
+                                        <div key={j.id} className="flex gap-3 items-start p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
+                                            <div className="w-10 h-10 rounded-lg bg-gold-100 dark:bg-gold-900/30 text-gold-600 dark:text-gold-400 flex items-center justify-center flex-shrink-0">
+                                                <i className="ph ph-calendar-text text-xl"></i>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{j.subject} - {j.class}</p>
+                                                <p className="text-xs text-slate-500 truncate">{formatDate(j.date)}</p>
+                                            </div>
+                                            <Badge status={j.status} />
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+            );
+        };
+
+
+        const ViewJurnalList = () => {
+            const { data, setCurrentView, showToast, refreshData } = useContext(AppContext);
+            const [searchTerm, setSearchTerm] = useState('');
+
+            const handleDelete = (id) => {
+                if(confirm('Yakin ingin menghapus jurnal ini?')) {
+                    DB.deleteJournal(id);
+                    refreshData();
+                    showToast('Jurnal berhasil dihapus');
+                }
+            };
+
+            const filteredJournals = data.journals.filter(j => 
+                j.subject.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                j.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                j.materi.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            return (
+                <div className="animate-fade-in space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold">Semua Jurnal Harian</h2>
+                            <p className="text-slate-500 text-sm">Kelola daftar jurnal yang telah Anda buat.</p>
+                        </div>
+                        <Button icon="ph-plus" onClick={() => setCurrentView('jurnal_form')}>Tambah Jurnal</Button>
+                    </div>
+
+                    <Card className="!p-0 overflow-hidden">
+                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                            <Input 
+                                placeholder="Cari mapel, kelas, atau materi..." 
+                                icon="ph-magnifying-glass"
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm whitespace-nowrap">
+                                <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                                    <tr>
+                                        <th className="px-6 py-4 font-medium">Tanggal</th>
+                                        <th className="px-6 py-4 font-medium">Kelas</th>
+                                        <th className="px-6 py-4 font-medium">Mata Pelajaran</th>
+                                        <th className="px-6 py-4 font-medium">Materi Pokok</th>
+                                        <th className="px-6 py-4 font-medium">Status</th>
+                                        <th className="px-6 py-4 font-medium text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {filteredJournals.length === 0 ? (
+                                        <tr><td colSpan="6" className="px-6 py-8 text-center text-slate-500">Data jurnal tidak ditemukan.</td></tr>
+                                    ) : (
+                                        filteredJournals.map(j => (
+                                            <tr key={j.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                <td className="px-6 py-4">{formatDate(j.date)}</td>
+                                                <td className="px-6 py-4 font-medium">{j.class}</td>
+                                                <td className="px-6 py-4">{j.subject}</td>
+                                                <td className="px-6 py-4 max-w-[200px] truncate" title={j.materi}>{j.materi}</td>
+                                                <td className="px-6 py-4"><Badge status={j.status} /></td>
+                                                <td className="px-6 py-4 text-right space-x-2">
+                                                    <button className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit"><i className="ph ph-pencil-simple text-lg"></i></button>
+                                                    <button onClick={() => handleDelete(j.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus"><i className="ph ph-trash text-lg"></i></button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+                </div>
+            );
+        };
+
+        const ViewJurnalForm = () => {
+            const { data, setCurrentView, showToast, refreshData } = useContext(AppContext);
+            
+            const [formData, setFormData] = useState({
+                date: getTodayStr(),
+                class: '',
+                subject: '',
+                jamKe: '',
+                materi: '',
+                kegiatan: '',
+                status: 'Terlaksana',
+                hadir: '', sakit: '', izin: '', alpa: '',
+                catatan: ''
+            });
+
+            const handleChange = (e) => setFormData({...formData, [e.target.name]: e.target.value});
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                DB.saveJournal(formData);
+                refreshData();
+                showToast('Jurnal berhasil disimpan!');
+                setCurrentView('jurnal_list');
+            };
+
+            return (
+                <div className="animate-fade-in space-y-4 max-w-4xl mx-auto">
+                    <div className="flex items-center gap-4 mb-6">
+                        <button onClick={() => setCurrentView('jurnal_list')} className="p-2 bg-white dark:bg-darkcard rounded-full shadow-sm hover:bg-slate-50">
+                            <i className="ph ph-arrow-left text-xl"></i>
+                        </button>
+                        <div>
+                            <h2 className="text-2xl font-bold">Buat Jurnal Baru</h2>
+                            <p className="text-slate-500 text-sm">Isi form di bawah ini untuk mencatat kegiatan pembelajaran.</p>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleSubmit}>
+                        <Card className="space-y-6">
+                            {/* Section 1: Info Dasar */}
+                            <div>
+                                <h3 className="text-sm font-bold text-gold-600 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 dark:border-slate-800"><i className="ph ph-info mr-2"></i>Informasi Umum</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <Input label="Tanggal" type="date" name="date" value={formData.date} onChange={handleChange} required />
+                                    <Select label="Kelas" name="class" value={formData.class} onChange={handleChange} options={data.classes.map(c => c.name)} required />
+                                    <Select label="Mata Pelajaran" name="subject" value={formData.subject} onChange={handleChange} options={data.subjects} required />
+                                </div>
+                            </div>
+
+                            {/* Section 2: Pembelajaran */}
+                            <div>
+                                <h3 className="text-sm font-bold text-gold-600 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 dark:border-slate-800"><i className="ph ph-book-open mr-2"></i>Detail Pembelajaran</h3>
+                                <div className="space-y-4">
+                                    <div className="grid md:grid-cols-4 gap-4">
+                                        <div className="md:col-span-1">
+                                            <Input label="Jam Ke-" type="text" name="jamKe" placeholder="Contoh: 1-2" value={formData.jamKe} onChange={handleChange} required />
+                                        </div>
+                                        <div className="md:col-span-3">
+                                            <Input label="Materi Pokok" name="materi" placeholder="Masukkan materi yang diajarkan" value={formData.materi} onChange={handleChange} required />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kegiatan Pembelajaran</label>
+                                        <textarea name="kegiatan" rows="4" className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-darkcard text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500 outline-none" placeholder="Deskripsikan kegiatan pendahuluan, inti, dan penutup..." value={formData.kegiatan} onChange={handleChange} required></textarea>
+                                    </div>
+                                    <Select label="Status Keterlaksanaan" name="status" value={formData.status} onChange={handleChange} options={['Terlaksana', 'Sebagian Terlaksana', 'Tidak Terlaksana']} required />
+                                </div>
+                            </div>
+
+                            {/* Section 3: Kehadiran Singkat */}
+                            <div>
+                                <h3 className="text-sm font-bold text-gold-600 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 dark:border-slate-800"><i className="ph ph-users mr-2"></i>Rekap Kehadiran (Opsional)</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <Input label="Hadir" type="number" name="hadir" min="0" value={formData.hadir} onChange={handleChange} />
+                                    <Input label="Sakit" type="number" name="sakit" min="0" value={formData.sakit} onChange={handleChange} />
+                                    <Input label="Izin" type="number" name="izin" min="0" value={formData.izin} onChange={handleChange} />
+                                    <Input label="Alpa" type="number" name="alpa" min="0" value={formData.alpa} onChange={handleChange} />
+                                </div>
+                            </div>
+
+                            {/* Section 4: Catatan */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Catatan / Hambatan / Tindak Lanjut</label>
+                                <textarea name="catatan" rows="2" className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-darkcard outline-none" value={formData.catatan} onChange={handleChange}></textarea>
+                            </div>
+
+                            <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+                                <Button variant="ghost" onClick={() => setCurrentView('jurnal_list')}>Batal</Button>
+                                <Button type="submit" icon="ph-floppy-disk">Simpan Jurnal</Button>
+                            </div>
+                        </Card>
+                    </form>
+                </div>
+            );
+        };
+
+
+        const ViewPresensi = () => {
+            const { data, showToast } = useContext(AppContext);
+            const [selectedClass, setSelectedClass] = useState(data.classes[0]?.id || '');
+            const [date, setDate] = useState(getTodayStr());
+            const [attendanceState, setAttendanceState] = useState({});
+
+            const classStudents = data.students.filter(s => s.classId === selectedClass);
+
+            // Load existing attendance if any
+            useEffect(() => {
+                const existing = data.attendance.find(a => a.date === date && a.classId === selectedClass);
+                if (existing) {
+                    setAttendanceState(existing.records);
+                } else {
+                    // Default all to H (Hadir)
+                    const defaults = {};
+                    classStudents.forEach(s => defaults[s.id] = 'H');
+                    setAttendanceState(defaults);
+                }
+            }, [selectedClass, date, data.attendance]);
+
+            const handleMark = (studentId, status) => {
+                setAttendanceState(prev => ({...prev, [studentId]: status}));
+            };
+
+            const handleSave = () => {
+                DB.saveAttendance(date, selectedClass, attendanceState);
+                showToast('Data presensi berhasil disimpan');
+            };
+
+            const statusColors = {
+                'H': 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200',
+                'S': 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200',
+                'I': 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-yellow-200',
+                'A': 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200'
+            };
+
+            return (
+                <div className="animate-fade-in space-y-4">
+                    <h2 className="text-2xl font-bold">Presensi Siswa</h2>
+                    
+                    <Card className="flex flex-col md:flex-row gap-4 items-end bg-slate-50 dark:bg-slate-800/30">
+                        <div className="w-full md:w-1/3">
+                            <Select label="Pilih Kelas" value={selectedClass} onChange={e => setSelectedClass(e.target.value)} options={data.classes.map(c => ({value: c.id, label: c.name}))} />
+                        </div>
+                        <div className="w-full md:w-1/3">
+                            <Input label="Tanggal" type="date" value={date} onChange={e => setDate(e.target.value)} />
+                        </div>
+                        <div className="w-full md:w-1/3 pb-4">
+                            <Button className="w-full" onClick={handleSave} icon="ph-floppy-disk">Simpan Presensi</Button>
+                        </div>
+                    </Card>
+
+                    <Card className="!p-0 overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-50 dark:bg-slate-800/80">
+                                <tr>
+                                    <th className="px-4 py-3 font-medium w-12 text-center">No</th>
+                                    <th className="px-4 py-3 font-medium w-24">NIS</th>
+                                    <th className="px-4 py-3 font-medium">Nama Siswa</th>
+                                    <th className="px-4 py-3 font-medium w-16 text-center">L/P</th>
+                                    <th className="px-4 py-3 font-medium text-center">Kehadiran (H/S/I/A)</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {classStudents.map((student, idx) => (
+                                    <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                        <td className="px-4 py-3 text-center">{idx + 1}</td>
+                                        <td className="px-4 py-3 font-mono text-xs text-slate-500">{student.nis}</td>
+                                        <td className="px-4 py-3 font-medium">{student.name}</td>
+                                        <td className="px-4 py-3 text-center">{student.gender}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex justify-center gap-2">
+                                                {['H', 'S', 'I', 'A'].map(status => {
+                                                    const isSelected = attendanceState[student.id] === status;
+                                                    return (
+                                                        <button 
+                                                            key={status}
+                                                            onClick={() => handleMark(student.id, status)}
+                                                            className={`w-8 h-8 rounded-full font-bold flex items-center justify-center border transition-all ${isSelected ? statusColors[status] + ' ring-2 ring-offset-1 ring-' + (status==='H'?'green':status==='S'?'blue':status==='I'?'yellow':'red')+'-400' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100 dark:bg-darkcard dark:border-slate-700'}`}
+                                                        >
+                                                            {status}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </Card>
+                </div>
+            );
+        };
+
+        const ViewSettings = () => {
+            const { data, showToast, refreshData } = useContext(AppContext);
+
+            const [appConfig, setAppConfig] = useState(data.appSettings || {
+                appTitle: 'JELAS', appSubtitle: 'JURNAL GURU FASE D', schoolName: 'MTs Negeri 2 Kabupaten Gorontalo', logo: ''
+            });
+
+            const [kopConfig, setKopConfig] = useState(data.kopSettings || {
+                line1: "KEMENTERIAN AGAMA REPUBLIK INDONESIA",
+                line2: "KANTOR KEMENTERIAN AGAMA KABUPATEN GORONTALO",
+                line3: "MADRASAH TSANAWIYAH NEGERI 2 KABUPATEN GORONTALO",
+                address: "Jl. Ahmad A. Wahab No. 123, Limboto, Kab. Gorontalo",
+                contact: "Email: mtsn2gorontalo@kemenag.go.id | Telp: (0435) 881234",
+                fontFamily: "helvetica",
+                fontSizeLine1: 11,
+                fontSizeLine2: 12,
+                fontSizeLine3: 14,
+                fontSizeAddress: 8.5,
+                logoLeft: "",
+                logoRight: "",
+                showLogoLeft: true,
+                showLogoRight: true,
+                showLogo: true
+            });
+
+            const [teacherConfig, setTeacherConfig] = useState(data.teacher || {
+                name: '', nip: '', school: '', phase: 'D', academicYear: '2026/2027', photo: '', headmasterName: '', headmasterNip: ''
+            });
+
+            const handleConfigChange = (e) => setAppConfig({...appConfig, [e.target.name]: e.target.value});
+            const handleKopChange = (e) => {
+                const { name, value, type, checked } = e.target;
+                setKopConfig({...kopConfig, [name]: type === 'checkbox' ? checked : value});
+            };
+            const handleTeacherChange = (e) => setTeacherConfig({...teacherConfig, [e.target.name]: e.target.value});
+
+            const handleLogoUpload = (e) => {
+                const file = e.target.files[0];
+                if(file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        setAppConfig({...appConfig, logo: evt.target.result});
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handleKopLogoUpload = (e, side) => {
+                const file = e.target.files[0];
+                if(file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        setKopConfig(prev => ({...prev, [side]: evt.target.result}));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handleTeacherPhotoUpload = (e) => {
+                const file = e.target.files[0];
+                if(file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        setTeacherConfig({...teacherConfig, photo: evt.target.result});
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const saveConfig = (e) => {
+                e.preventDefault();
+                DB.saveAppSettings(appConfig);
+                refreshData();
+                showToast("Pengaturan aplikasi berhasil disimpan");
+            };
+
+            const saveKopConfig = (e) => {
+                e.preventDefault();
+                DB.saveKopSettings(kopConfig);
+                refreshData();
+                showToast("Pengaturan KOP Surat & Logo berhasil disimpan");
+            };
+
+            const saveTeacherProfile = (e) => {
+                e.preventDefault();
+                DB.saveTeacher(teacherConfig);
+                refreshData();
+                showToast("Profil Guru & Kepala Madrasah berhasil diperbarui");
+            };
+
+            const exportPDF = () => {
+                const doc = new jspdf.jsPDF();
+                const kop = data.kopSettings || kopConfig;
+                const pdfFont = kop.fontFamily || "helvetica";
+                
+                let startY = 10;
+                const logoSize = 24; // Standar 2.4 cm per aturan umum Tata Naskah Dinas RI
+                const leftMargin = 15; // Margin kiri standar 1.5 cm
+                const rightMargin = 15; // Margin kanan standar 1.5 cm
+                const pageWidth = 210; // Lebar kertas A4 (210mm)
+
+                // Tampilkan Logo Kiri (Kemenag / Pemda)
+                if (kop.showLogoLeft && (kop.logoLeft || data.appSettings?.logo)) {
+                    try {
+                        const logoLeftSrc = kop.logoLeft || data.appSettings.logo;
+                        doc.addImage(logoLeftSrc, 'PNG', leftMargin, startY, logoSize, logoSize);
+                    } catch (e) {
+                        console.error("Gagal menambahkan logo kiri ke PDF", e);
+                    }
+                }
+
+                // Tampilkan Logo Kanan (Madrasah / Sekolah)
+                if (kop.showLogoRight && kop.logoRight) {
+                    try {
+                        const rightX = pageWidth - rightMargin - logoSize;
+                        doc.addImage(kop.logoRight, 'PNG', rightX, startY, logoSize, logoSize);
+                    } catch (e) {
+                        console.error("Gagal menambahkan logo kanan ke PDF", e);
+                    }
+                }
+
+                // Header / KOP Surat Text dengan Font & Ukuran Kustom
+                const fLine1 = Number(kop.fontSizeLine1) || 11;
+                const fLine2 = Number(kop.fontSizeLine2) || 12;
+                const fLine3 = Number(kop.fontSizeLine3) || 14;
+                const fAddr = Number(kop.fontSizeAddress) || 8.5;
+
+                doc.setFont(pdfFont, "bold");
+                doc.setFontSize(fLine1);
+                doc.text((kop.line1 || '').toUpperCase(), 105, startY + 4, { align: "center" });
+
+                doc.setFontSize(fLine2);
+                doc.text((kop.line2 || '').toUpperCase(), 105, startY + 10, { align: "center" });
+
+                doc.setFontSize(fLine3);
+                doc.text((kop.line3 || '').toUpperCase(), 105, startY + 17, { align: "center" });
+
+                doc.setFont(pdfFont, "normal");
+                doc.setFontSize(fAddr);
+                doc.text(kop.address || '', 105, startY + 22, { align: "center" });
+                doc.setFontSize(Math.max(6, fAddr - 0.5));
+                doc.text(kop.contact || '', 105, startY + 26, { align: "center" });
+
+                // Garis Ganda Kop Surat (Tebal - Tipis)
+                const lineY = startY + 29;
+                doc.setLineWidth(1.5);
+                doc.line(leftMargin, lineY, pageWidth - rightMargin, lineY);
+                doc.setLineWidth(0.5);
+                doc.line(leftMargin, lineY + 1.2, pageWidth - rightMargin, lineY + 1.2);
+
+                // Judul Dokumen
+                doc.setFont(pdfFont, "bold");
+                doc.setFontSize(12);
+                doc.text((data.appSettings?.appTitle?.toUpperCase() || "JURNAL HARIAN GURU"), 105, lineY + 10, { align: "center" });
+                doc.setFontSize(10);
+                doc.setFont(pdfFont, "normal");
+                doc.text(`Tahun Pelajaran ${data.teacher?.academicYear || '2026/2027'}`, 105, lineY + 15, { align: "center" });
+
+                const tableColumn = ["No", "Tanggal", "Kelas", "Mata Pelajaran", "Materi Pokok", "Status"];
+                const tableRows = data.journals.map((j, idx) => [
+                    idx + 1,
+                    formatDate(j.date),
+                    j.class,
+                    j.subject,
+                    j.materi,
+                    j.status
+                ]);
+
+                doc.autoTable({
+                    head: [tableColumn],
+                    body: tableRows,
+                    startY: lineY + 20,
+                    theme: 'grid',
+                    styles: { fontSize: 8, font: pdfFont },
+                    headStyles: { fillColor: [197, 149, 53] } // Gold color
+                });
+
+                // Signature Section
+                const finalY = doc.lastAutoTable.finalY || lineY + 40;
+                doc.setFontSize(10);
+                doc.setFont(pdfFont, "normal");
+                doc.text("Mengetahui,", 14, finalY + 15);
+                doc.text("Kepala Madrasah", 14, finalY + 20);
+                
+                doc.text("Gorontalo, " + formatDate(new Date().toISOString()), 140, finalY + 15);
+                doc.text("Guru Mata Pelajaran", 140, finalY + 20);
+
+                doc.setFont(pdfFont, "bold");
+                doc.text(data.teacher.headmasterName || "...........................", 14, finalY + 40);
+                doc.setFont(pdfFont, "normal");
+                doc.text(`NIP. ${data.teacher.headmasterNip || '-'}`, 14, finalY + 45);
+
+                doc.setFont(pdfFont, "bold");
+                doc.text(data.teacher.name, 140, finalY + 40);
+                doc.setFont(pdfFont, "normal");
+                doc.text(`NIP. ${data.teacher.nip}`, 140, finalY + 45);
+
+                doc.save("Jurnal_Harian_Guru.pdf");
+                showToast("PDF Berhasil diexport");
+            };
+
+            const exportExcel = () => {
+                const ws = XLSX.utils.json_to_sheet(data.journals);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Jurnal");
+                XLSX.writeFile(wb, "Jurnal_Harian_Guru.xlsx");
+                showToast("Excel Berhasil diexport");
+            };
+
+            return (
+                <div className="animate-fade-in max-w-3xl space-y-6">
+                    <h2 className="text-2xl font-bold">Pengaturan & Profil</h2>
+
+                    <Card>
+                        <h3 className="font-bold text-lg mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Pengaturan Tampilan Aplikasi</h3>
+                        <form onSubmit={saveConfig} className="space-y-4">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-16 h-16 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center overflow-hidden relative group">
+                                    {appConfig.logo ? (
+                                        <img src={appConfig.logo} alt="Logo" className="w-full h-full object-cover bg-white" />
+                                    ) : (
+                                        <i className="ph ph-image text-2xl text-slate-400"></i>
+                                    )}
+                                    <input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 opacity-0 cursor-pointer" title="Ubah Logo" />
+                                    <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center pointer-events-none transition-all">
+                                        <i className="ph ph-pencil-simple text-white"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium">Logo Utama Aplikasi</p>
+                                    <p className="text-xs text-slate-500">Logo ini akan tampil pada Navbar dan Login screen</p>
+                                </div>
+                            </div>
+                            <Input label="Judul Aplikasi" name="appTitle" value={appConfig.appTitle} onChange={handleConfigChange} required />
+                            <Input label="Sub Judul (Misal: JURNAL GURU FASE D)" name="appSubtitle" value={appConfig.appSubtitle} onChange={handleConfigChange} required />
+                            <Input label="Nama Madrasah" name="schoolName" value={appConfig.schoolName} onChange={handleConfigChange} required />
+                            
+                            <div className="flex justify-end pt-2">
+                                <Button type="submit" icon="ph-floppy-disk">Simpan Pengaturan Aplikasi</Button>
+                            </div>
+                        </form>
+                    </Card>
+
+                    {/* Pengaturan KOP Surat & Double Logo untuk PDF */}
+                    <Card>
+                        <h3 className="font-bold text-lg mb-2 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <i className="ph ph-article-nytimes text-gold-500 text-xl"></i>
+                            Pengaturan KOP Surat, Font, & Import Logo KOP
+                        </h3>
+                        <p className="text-xs text-slate-500 mb-4">Atur baris instansi, jenis font, ukuran teks per baris, dan unggah Logo Kiri & Logo Kanan untuk laporan PDF.</p>
+                        
+                        <form onSubmit={saveKopConfig} className="space-y-4">
+                            {/* Section Upload Logo Kiri dan Logo Kanan */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                                {/* Logo Kiri */}
+                                <div className="space-y-2">
+                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                        <i className="ph ph-image text-gold-500"></i> Logo KOP Kiri (Misal: Kemenag/Pemda)
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-14 h-14 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center overflow-hidden relative group bg-white dark:bg-darkcard">
+                                            {kopConfig.logoLeft || appConfig.logo ? (
+                                                <img src={kopConfig.logoLeft || appConfig.logo} alt="Logo Kiri" className="w-full h-full object-contain p-1" />
+                                            ) : (
+                                                <i className="ph ph-image text-slate-400 text-xl"></i>
+                                            )}
+                                            <input type="file" accept="image/*" onChange={(e) => handleKopLogoUpload(e, 'logoLeft')} className="absolute inset-0 opacity-0 cursor-pointer" title="Unggah Logo Kiri" />
+                                            <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center pointer-events-none">
+                                                <i className="ph ph-upload-simple text-white"></i>
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 text-xs">
+                                            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                <input 
+                                                    type="checkbox" 
+                                                    name="showLogoLeft" 
+                                                    checked={kopConfig.showLogoLeft} 
+                                                    onChange={handleKopChange} 
+                                                    className="w-4 h-4 rounded text-gold-500 focus:ring-gold-500"
+                                                />
+                                                Tampilkan Logo Kiri
+                                            </label>
+                                            <p className="text-[11px] text-slate-500">Format JPG/PNG transparansi.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Logo Kanan */}
+                                <div className="space-y-2">
+                                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                        <i className="ph ph-image text-gold-500"></i> Logo KOP Kanan (Misal: Logo Madrasah)
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-14 h-14 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center overflow-hidden relative group bg-white dark:bg-darkcard">
+                                            {kopConfig.logoRight ? (
+                                                <img src={kopConfig.logoRight} alt="Logo Kanan" className="w-full h-full object-contain p-1" />
+                                            ) : (
+                                                <i className="ph ph-image text-slate-400 text-xl"></i>
+                                            )}
+                                            <input type="file" accept="image/*" onChange={(e) => handleKopLogoUpload(e, 'logoRight')} className="absolute inset-0 opacity-0 cursor-pointer" title="Unggah Logo Kanan" />
+                                            <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center pointer-events-none">
+                                                <i className="ph ph-upload-simple text-white"></i>
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 text-xs">
+                                            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                <input 
+                                                    type="checkbox" 
+                                                    name="showLogoRight" 
+                                                    checked={kopConfig.showLogoRight} 
+                                                    onChange={handleKopChange} 
+                                                    className="w-4 h-4 rounded text-gold-500 focus:ring-gold-500"
+                                                />
+                                                Tampilkan Logo Kanan
+                                            </label>
+                                            <p className="text-[11px] text-slate-500">Format JPG/PNG transparansi.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section Pengaturan Font KOP Surat */}
+                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
+                                <p className="text-xs font-bold text-gold-600 uppercase tracking-wider flex items-center gap-2">
+                                    <i className="ph ph-text-aa text-lg"></i> Pengaturan Font KOP Surat
+                                </p>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Select 
+                                        label="Jenis Font (Font Family)" 
+                                        name="fontFamily" 
+                                        value={kopConfig.fontFamily || 'helvetica'} 
+                                        onChange={handleKopChange}
+                                        options={[
+                                            { value: 'times', label: 'Times New Roman / Serif (Resmi Naskah Dinas)' },
+                                            { value: 'helvetica', label: 'Helvetica / Arial (Sans-serif)' },
+                                            { value: 'courier', label: 'Courier / Monospace' }
+                                        ]}
+                                    />
+                                    <Input 
+                                        label="Ukuran Baris 1 Instansi (pt)" 
+                                        type="number" 
+                                        step="0.5" 
+                                        name="fontSizeLine1" 
+                                        value={kopConfig.fontSizeLine1 || 11} 
+                                        onChange={handleKopChange} 
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <Input 
+                                        label="Ukuran Baris 2 (pt)" 
+                                        type="number" 
+                                        step="0.5" 
+                                        name="fontSizeLine2" 
+                                        value={kopConfig.fontSizeLine2 || 12} 
+                                        onChange={handleKopChange} 
+                                    />
+                                    <Input 
+                                        label="Ukuran Baris 3 Utama (pt)" 
+                                        type="number" 
+                                        step="0.5" 
+                                        name="fontSizeLine3" 
+                                        value={kopConfig.fontSizeLine3 || 14} 
+                                        onChange={handleKopChange} 
+                                    />
+                                    <Input 
+                                        label="Ukuran Alamat & Kontak (pt)" 
+                                        type="number" 
+                                        step="0.5" 
+                                        name="fontSizeAddress" 
+                                        value={kopConfig.fontSizeAddress || 8.5} 
+                                        onChange={handleKopChange} 
+                                    />
+                                </div>
+                            </div>
+
+                            <Input label="Instansi Baris 1" name="line1" value={kopConfig.line1} onChange={handleKopChange} placeholder="Contoh: KEMENTERIAN AGAMA REPUBLIK INDONESIA" required />
+                            <Input label="Instansi Baris 2 (Kanwil/Kantah)" name="line2" value={kopConfig.line2} onChange={handleKopChange} placeholder="Contoh: KANTOR KEMENTERIAN AGAMA KABUPATEN GORONTALO" required />
+                            <Input label="Nama Satker / Madrasah (Baris 3 Utama)" name="line3" value={kopConfig.line3} onChange={handleKopChange} placeholder="Contoh: MADRASAH TSANAWIYAH NEGERI 2 KABUPATEN GORONTALO" required />
+                            <Input label="Alamat Lengkap" name="address" value={kopConfig.address} onChange={handleKopChange} placeholder="Jl. Ahmad A. Wahab No. 123, Limboto" required />
+                            <Input label="Kontak / Email / Telepon / Website" name="contact" value={kopConfig.contact} onChange={handleKopChange} placeholder="Email: mtsn2@kemenag.go.id | Telp: (0435) 881234" required />
+
+                            {/* Live Preview Box dengan Dual Logo & Dynamic Font Standar */}
+                            <div className="mt-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-inner">
+                                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+                                    <i className="ph ph-eye text-sm"></i> Pratinjau Tampilan KOP PDF (Font: {kopConfig.fontFamily === 'times' ? 'Times New Roman' : kopConfig.fontFamily === 'courier' ? 'Courier' : 'Helvetica/Arial'}):
+                                </p>
+                                <div 
+                                    className="text-center text-slate-900 dark:text-slate-100 relative px-16 py-2 min-h-[105px]"
+                                    style={{
+                                        fontFamily: kopConfig.fontFamily === 'times' ? '"Times New Roman", Times, serif' : kopConfig.fontFamily === 'courier' ? '"Courier New", Courier, monospace' : 'Arial, sans-serif'
+                                    }}
+                                >
+                                    {/* Logo Kiri Preview */}
+                                    {kopConfig.showLogoLeft && (
+                                        <div className="absolute left-2 top-2 w-14 h-14 flex items-center justify-center">
+                                            {kopConfig.logoLeft || appConfig.logo ? (
+                                                <img src={kopConfig.logoLeft || appConfig.logo} alt="Kop Logo Left" className="max-w-full max-h-full object-contain" />
+                                            ) : (
+                                                <div className="w-12 h-12 rounded bg-gold-500 text-white flex items-center justify-center text-[10px] font-sans font-bold">KIRI</div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Logo Kanan Preview */}
+                                    {kopConfig.showLogoRight && (
+                                        <div className="absolute right-2 top-2 w-14 h-14 flex items-center justify-center">
+                                            {kopConfig.logoRight ? (
+                                                <img src={kopConfig.logoRight} alt="Kop Logo Right" className="max-w-full max-h-full object-contain" />
+                                            ) : (
+                                                <div className="w-12 h-12 rounded bg-slate-600 text-white flex items-center justify-center text-[10px] font-sans font-bold">KANAN</div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <h5 className="font-bold tracking-wide uppercase leading-tight" style={{ fontSize: `${kopConfig.fontSizeLine1 || 11}pt` }}>{kopConfig.line1 || 'BARIS INSTANSI 1'}</h5>
+                                    <h5 className="font-bold tracking-wide uppercase leading-tight mt-0.5" style={{ fontSize: `${kopConfig.fontSizeLine2 || 12}pt` }}>{kopConfig.line2 || 'BARIS INSTANSI 2'}</h5>
+                                    <h4 className="font-bold tracking-wider uppercase leading-tight mt-0.5" style={{ fontSize: `${kopConfig.fontSizeLine3 || 14}pt` }}>{kopConfig.line3 || 'NAMA MADRASAH'}</h4>
+                                    <p className="font-normal text-slate-600 dark:text-slate-400 mt-1 leading-none" style={{ fontSize: `${kopConfig.fontSizeAddress || 8.5}pt` }}>{kopConfig.address}</p>
+                                    <p className="font-normal text-slate-600 dark:text-slate-400 mt-0.5 leading-none" style={{ fontSize: `${Math.max(6, (kopConfig.fontSizeAddress || 8.5) - 0.5)}pt` }}>{kopConfig.contact}</p>
+                                    
+                                    {/* Double Line Divider */}
+                                    <div className="mt-3">
+                                        <div className="border-b-2 border-slate-900 dark:border-slate-100"></div>
+                                        <div className="border-b border-slate-900 dark:border-slate-100 mt-[2px]"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-2">
+                                <Button type="submit" icon="ph-floppy-disk">Simpan Pengaturan KOP, Font, & Logo</Button>
+                            </div>
+                        </form>
+                    </Card>
+
+                    <Card>
+                        <h3 className="font-bold text-lg mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Profil Guru & Kepala Madrasah</h3>
+                        <form onSubmit={saveTeacherProfile} className="space-y-4">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="w-16 h-16 rounded-full border-2 border-gold-400 flex items-center justify-center overflow-hidden relative group">
+                                    <img src={teacherConfig.photo || "https://placehold.co/150x150/c59535/ffffff?text=Guru"} alt="Foto Guru" className="w-full h-full object-cover" />
+                                    <input type="file" accept="image/*" onChange={handleTeacherPhotoUpload} className="absolute inset-0 opacity-0 cursor-pointer" title="Ubah Foto Profil" />
+                                    <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center pointer-events-none transition-all">
+                                        <i className="ph ph-camera text-white"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium">Foto Profil Guru</p>
+                                    <p className="text-xs text-slate-500">Klik foto untuk mengganti foto profil Anda</p>
+                                </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <Input label="Nama Lengkap Guru (dengan Gelar)" name="name" value={teacherConfig.name} onChange={handleTeacherChange} required />
+                                <Input label="NIP Guru" name="nip" value={teacherConfig.nip} onChange={handleTeacherChange} required />
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <Input label="Tahun Pelajaran" name="academicYear" value={teacherConfig.academicYear} onChange={handleTeacherChange} required />
+                                <Input label="Fase Mengajar" name="phase" value={teacherConfig.phase} onChange={handleTeacherChange} required />
+                            </div>
+
+                            <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+                                <h4 className="text-sm font-bold text-gold-600 uppercase tracking-wider mb-3"><i className="ph ph-user-circle mr-2"></i>Data Kepala Madrasah (Penandatangan PDF)</h4>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <Input label="Nama Kepala Madrasah (dengan Gelar)" name="headmasterName" value={teacherConfig.headmasterName} onChange={handleTeacherChange} required />
+                                    <Input label="NIP Kepala Madrasah" name="headmasterNip" value={teacherConfig.headmasterNip} onChange={handleTeacherChange} required />
+                                </div>
+                            </div>
+                            
+                            <div className="flex justify-end pt-2">
+                                <Button type="submit" icon="ph-floppy-disk">Simpan Profil & Kepala Madrasah</Button>
+                            </div>
+                        </form>
+                    </Card>
+                    
+                    <Card>
+                        <h3 className="font-bold text-lg mb-4">Export Data Jurnal</h3>
+                        <p className="text-sm text-slate-500 mb-4">Unduh rekap jurnal harian Anda dalam format PDF (dengan tanda tangan Kepala Madrasah & Guru) atau Excel.</p>
+                        <div className="flex gap-4">
+                            <Button onClick={exportPDF} icon="ph-file-pdf" className="bg-red-600 hover:bg-red-700">Cetak PDF</Button>
+                            <Button onClick={exportExcel} icon="ph-file-xls" className="bg-green-600 hover:bg-green-700">Export Excel</Button>
+                        </div>
+                    </Card>
+                </div>
+            );
+        };
+
+        const ViewKelas = () => {
+            const { data, showToast, refreshData } = useContext(AppContext);
+            const [isEditing, setIsEditing] = useState(false);
+            const [formData, setFormData] = useState({ id: '', name: '', studentCount: 0 });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                DB.saveClass({ ...formData, studentCount: Number(formData.studentCount) || 0 });
+                refreshData();
+                showToast("Data kelas berhasil disimpan");
+                setIsEditing(false);
+                setFormData({ id: '', name: '', studentCount: 0 });
+            };
+
+            const handleEdit = (cls) => {
+                setFormData(cls);
+                setIsEditing(true);
+            };
+
+            const handleDelete = (id) => {
+                if(confirm('Yakin ingin menghapus kelas ini? Pastikan tidak ada data siswa yang terkait pada kelas ini.')) {
+                    DB.deleteClass(id);
+                    refreshData();
+                    showToast("Kelas berhasil dihapus");
+                }
+            };
+
+            return (
+                <div className="animate-fade-in space-y-4">
+                    <h2 className="text-2xl font-bold">Data Kelas</h2>
+                    
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <div className="md:col-span-1">
+                            <Card>
+                                <h3 className="font-bold text-lg mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+                                    <i className={`ph ${isEditing ? 'ph-pencil-simple' : 'ph-plus-circle'} mr-2`}></i>
+                                    {isEditing ? 'Edit Kelas' : 'Tambah Kelas'}
+                                </h3>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <Input label="Nama Kelas" placeholder="Contoh: VII-A" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                                    <div className="flex gap-2 pt-2">
+                                        <Button type="submit" className="w-full justify-center">{isEditing ? 'Update' : 'Simpan'}</Button>
+                                        {isEditing && <Button variant="ghost" onClick={() => {setIsEditing(false); setFormData({id:'', name:'', studentCount:0})}}>Batal</Button>}
+                                    </div>
+                                </form>
+                            </Card>
+                        </div>
+                        <div className="md:col-span-2">
+                            <Card className="!p-0 overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                                            <tr>
+                                                <th className="px-6 py-4 font-medium">Nama Kelas</th>
+                                                <th className="px-6 py-4 font-medium">Jumlah Siswa</th>
+                                                <th className="px-6 py-4 font-medium text-right">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                            {data.classes.map(c => {
+                                                const actualCount = data.students.filter(s => s.classId === c.id).length;
+                                                return (
+                                                <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                    <td className="px-6 py-4 font-medium">{c.name}</td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 py-1 px-3 rounded-full text-xs font-semibold">
+                                                            {actualCount} Siswa
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right space-x-2">
+                                                        <button onClick={() => handleEdit(c)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit"><i className="ph ph-pencil-simple text-lg"></i></button>
+                                                        <button onClick={() => handleDelete(c.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus"><i className="ph ph-trash text-lg"></i></button>
+                                                    </td>
+                                                </tr>
+                                            )})}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </Card>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ViewSiswa = () => {
+            const { data, showToast, refreshData } = useContext(AppContext);
+            const [selectedClass, setSelectedClass] = useState('');
+            
+            const handleImport = (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const bstr = evt.target.result;
+                        const wb = XLSX.read(bstr, {type:'binary'});
+                        const wsname = wb.SheetNames[0];
+                        const ws = wb.Sheets[wsname];
+                        const importedData = XLSX.utils.sheet_to_json(ws);
+                        
+                        let idCounter = Date.now();
+                        const newStudents = importedData.map(row => {
+                            // Coba cocokkan nama kelas dari file excel ke database kelas
+                            const classNameStr = row['Kelas'] || row['kelas'] || '';
+                            const classObj = data.classes.find(c => c.name.toLowerCase() === String(classNameStr).toLowerCase());
+                            const finalClassId = classObj ? classObj.id : data.classes[0].id;
+                            const finalClassName = classObj ? classObj.name : data.classes[0].name;
+
+                            return {
+                                id: 's' + (idCounter++),
+                                nis: row['NIS'] || row['nis'] || '-',
+                                name: row['Nama'] || row['nama'] || row['Nama Siswa'] || 'Tanpa Nama',
+                                gender: row['L/P'] || row['LP'] || row['Gender'] || 'L',
+                                classId: finalClassId,
+                                className: finalClassName
+                            };
+                        });
+
+                        DB.importStudents(newStudents);
+                        refreshData();
+                        showToast(`Berhasil mengimpor ${newStudents.length} siswa`);
+                    } catch (error) {
+                        showToast('Gagal membaca file Excel. Pastikan format benar.', 'error');
+                        console.error(error);
+                    }
+                };
+                reader.readAsBinaryString(file);
+                // Reset file input
+                e.target.value = null;
+            };
+
+            const downloadTemplate = () => {
+                const ws = XLSX.utils.json_to_sheet([{ NIS: '12345', Nama: 'Budi Santoso', Kelas: 'VII-A', 'L/P': 'L' }]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Template Siswa");
+                XLSX.writeFile(wb, "Template_Import_Siswa.xlsx");
+            };
+
+            const handleDeleteSiswa = (id) => {
+                if(confirm('Hapus siswa ini dari sistem?')) {
+                    const currentData = DB.get();
+                    currentData.students = currentData.students.filter(stud => stud.id !== id);
+                    DB.set(currentData);
+                    refreshData();
+                    showToast('Data siswa berhasil dihapus');
+                }
+            };
+
+            const displayedStudents = selectedClass ? data.students.filter(s => s.classId === selectedClass) : data.students;
+
+            return (
+                <div className="animate-fade-in space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold">Data Siswa</h2>
+                            <p className="text-slate-500 text-sm">Kelola data siswa, Anda dapat mengimpor data masal menggunakan format Excel.</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button variant="secondary" icon="ph-download-simple" onClick={downloadTemplate}>Template Excel</Button>
+                            <label className="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 bg-gold-500 hover:bg-gold-600 text-white shadow-md shadow-gold-500/20 focus:outline-none">
+                                <i className="ph ph-upload-simple text-lg"></i>
+                                Import Excel
+                                <input type="file" accept=".xlsx, .xls, .csv" onChange={handleImport} className="hidden" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <Card className="flex gap-4 items-center bg-slate-50 dark:bg-slate-800/30">
+                        <div className="w-full md:w-1/3">
+                            <Select label="Filter Kelas" value={selectedClass} onChange={e => setSelectedClass(e.target.value)} options={data.classes.map(c => ({value: c.id, label: c.name}))} />
+                        </div>
+                        {selectedClass && (
+                            <div className="w-full md:w-1/3 pt-4">
+                                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Total: {displayedStudents.length} Siswa</p>
+                            </div>
+                        )}
+                    </Card>
+
+                    <Card className="!p-0 overflow-x-auto">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                                <tr>
+                                    <th className="px-6 py-4 w-12 font-medium">No</th>
+                                    <th className="px-6 py-4 font-medium">NIS</th>
+                                    <th className="px-6 py-4 font-medium">Nama Lengkap</th>
+                                    <th className="px-6 py-4 font-medium">Kelas</th>
+                                    <th className="px-6 py-4 font-medium">L/P</th>
+                                    <th className="px-6 py-4 font-medium text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {displayedStudents.length === 0 ? (
+                                    <tr><td colSpan="6" className="px-6 py-8 text-center text-slate-500">Belum ada data siswa pada kelas ini. Silakan import dari Excel.</td></tr>
+                                ) : (
+                                    displayedStudents.map((s, idx) => (
+                                        <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="px-6 py-3 text-center">{idx + 1}</td>
+                                            <td className="px-6 py-3 font-mono text-xs text-slate-500">{s.nis}</td>
+                                            <td className="px-6 py-3 font-medium">{s.name}</td>
+                                            <td className="px-6 py-3"><Badge status={s.className} /></td>
+                                            <td className="px-6 py-3">{s.gender}</td>
+                                            <td className="px-6 py-3 text-right">
+                                                <button onClick={() => handleDeleteSiswa(s.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Hapus Siswa"><i className="ph ph-trash text-lg"></i></button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </Card>
+                </div>
+            )
+        };
+
+
+
+        // --- MAIN APP ---
+        const MainApp = () => {
+            const { user, currentView } = useContext(AppContext);
+            const [sidebarOpen, setSidebarOpen] = useState(false);
+
+            if (!user) {
+                return <ViewLogin />;
+            }
+
+            const renderView = () => {
+                switch(currentView) {
+                    case 'dashboard': return <ViewDashboard />;
+                    case 'jurnal_list': return <ViewJurnalList />;
+                    case 'jurnal_form': return <ViewJurnalForm />;
+                    case 'presensi': return <ViewPresensi />;
+                    case 'settings': return <ViewSettings />;
+                    case 'siswa': return <ViewSiswa />;
+                    case 'kelas': return <ViewKelas />;
+                    default: return <ViewDashboard />;
+                }
+            };
+
+            return (
+                <div className="flex h-screen overflow-hidden bg-slate-50/50 dark:bg-darker">
+                    <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+                    
+                    <div className="flex-1 flex flex-col min-w-0 overflow-hidden lg:ml-64">
+                        <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+                        
+                        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                            <div className="max-w-7xl mx-auto pb-12">
+                                {renderView()}
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(
+            <AppProvider>
+                <MainApp />
+            </AppProvider>
+        );
+    </script>
+</body>
+</html>
